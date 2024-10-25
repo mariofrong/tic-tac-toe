@@ -1,13 +1,16 @@
 import { useState, useEffect } from "react";
 
 interface GameBoardProps {
-  onGameEnd: (won: boolean) => void;
+  onGameEnd: (result: "win" | "lose" | "draw") => void;
 }
 
 export const GameBoard = ({ onGameEnd }: GameBoardProps) => {
   const [board, setBoard] = useState<Array<string | null>>(Array(9).fill(null));
   const [isPlayerTurn, setIsPlayerTurn] = useState(true);
   const [isGameOver, setIsGameOver] = useState(false);
+  const [gameStatus, setGameStatus] = useState<
+    "playing" | "win" | "lose" | "draw"
+  >("playing");
 
   const checkWinner = (squares: Array<string | null>): string | null => {
     const lines = [
@@ -63,11 +66,13 @@ export const GameBoard = ({ onGameEnd }: GameBoardProps) => {
     setBoard(Array(9).fill(null));
     setIsPlayerTurn(true);
     setIsGameOver(false);
+    setGameStatus("playing");
   };
 
   useEffect(() => {
     if (!isPlayerTurn && !isGameOver) {
-      setTimeout(botMove, 500);
+      const timer = setTimeout(botMove, 500);
+      return () => clearTimeout(timer);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlayerTurn, isGameOver]);
@@ -76,14 +81,37 @@ export const GameBoard = ({ onGameEnd }: GameBoardProps) => {
     if (isGameOver) return;
 
     const winner = checkWinner(board);
-    if (winner) {
+    const isDraw = !board.includes(null) && !winner;
+
+    if (winner || isDraw) {
       setIsGameOver(true);
-      onGameEnd(winner === "X");
-    } else if (!board.includes(null)) {
-      setIsGameOver(true);
-      onGameEnd(false);
+
+      if (winner === "X") {
+        setGameStatus("win");
+        onGameEnd("win");
+      } else if (winner === "O") {
+        setGameStatus("lose");
+        onGameEnd("lose");
+      } else if (isDraw) {
+        setGameStatus("draw");
+        onGameEnd("draw");
+      }
     }
-  }, [board, onGameEnd, isGameOver]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [board, onGameEnd]);
+
+  const getGameStatusMessage = () => {
+    switch (gameStatus) {
+      case "win":
+        return "You Won! 🎉";
+      case "lose":
+        return "You Lost!";
+      case "draw":
+        return "It's a Draw!";
+      default:
+        return "";
+    }
+  };
 
   return (
     <div className="flex flex-col items-center gap-4">
@@ -91,22 +119,40 @@ export const GameBoard = ({ onGameEnd }: GameBoardProps) => {
         {board.map((cell, index) => (
           <button
             key={index}
-            className="aspect-square text-4xl font-bold border-2 border-gray-300 rounded hover:bg-gray-100 transition-colors duration-200 flex items-center justify-center"
+            className={`
+              aspect-square text-4xl font-bold border-2 border-gray-300 rounded 
+              ${!isGameOver && !cell ? "hover:bg-gray-100" : ""} 
+              transition-colors duration-200 flex items-center justify-center
+            `}
             onClick={() => handleClick(index)}
-            disabled={isGameOver}
+            disabled={isGameOver || Boolean(cell)}
           >
             {cell === "X" && <span className="text-blue-600">X</span>}
             {cell === "O" && <span className="text-red-600">O</span>}
           </button>
         ))}
       </div>
+
       {isGameOver && (
-        <button
-          onClick={resetGame}
-          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-        >
-          Play Again
-        </button>
+        <div className="flex flex-col items-center gap-2">
+          <p
+            className={`text-lg font-bold ${
+              gameStatus === "win"
+                ? "text-green-600"
+                : gameStatus === "lose"
+                ? "text-red-600"
+                : "text-gray-600"
+            }`}
+          >
+            {getGameStatusMessage()}
+          </p>
+          <button
+            onClick={resetGame}
+            className="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+          >
+            Play Again
+          </button>
+        </div>
       )}
     </div>
   );

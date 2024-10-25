@@ -19,21 +19,28 @@ export default function Home() {
     );
   }
 
-  const handleGameEnd = (won: boolean) => {
-    if (won) {
-      setScore((prevScore) => prevScore + 1);
-      setConsecutiveWins((prevWins) => {
-        const newWins = prevWins + 1;
-        if (newWins === 3) {
-          // Add bonus point and reset consecutive wins
-          setScore((prevScore) => prevScore + 1);
-          return 0;
+  const handleGameEnd = (result: "win" | "lose" | "draw") => {
+    switch (result) {
+      case "win":
+        setScore((prevScore) => prevScore + 1);
+        setConsecutiveWins((prevWins) => {
+          const newWins = prevWins + 1;
+          if (newWins === 3) {
+            setScore((prevScore) => prevScore + 1);
+            return 0;
+          }
+          return newWins;
+        });
+        break;
+      case "lose":
+        if (score > 0) {
+          setScore((prevScore) => prevScore - 1);
         }
-        return newWins;
-      });
-    } else {
-      setScore((prevScore) => prevScore - 1);
-      setConsecutiveWins(0);
+        setConsecutiveWins(0);
+        break;
+      case "draw":
+        setConsecutiveWins(0);
+        break;
     }
   };
 
